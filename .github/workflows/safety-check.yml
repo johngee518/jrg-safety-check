@@ -3,7 +3,7 @@ name: JRG safety check
 # Cost: $0. Each run is one short job (~20-30 s, billed as 1 minute) => ~360 of the 2,000 free private-repo minutes per month.
 on:
   schedule:
-    - cron: "23 */2 * * *"
+    - cron: "23 * * * *"
   workflow_dispatch:
     inputs:
       mode:
