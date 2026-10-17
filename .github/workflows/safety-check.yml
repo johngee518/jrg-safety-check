@@ -1,0 +1,29 @@
+name: JRG safety check
+# Every 2 hours (quick checks). The 14:23 UTC run (~9:23 AM Central) is the daily full run that also checks outbound links.
+# Cost: $0. Each run is one short job (~20-30 s, billed as 1 minute) => ~360 of the 2,000 free private-repo minutes per month.
+on:
+  schedule:
+    - cron: "23 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "quick or full (full also checks outbound links)"
+        default: full
+        type: choice
+        options: [quick, full]
+permissions:
+  contents: read
+concurrency:
+  group: jrg-safety-check
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run safety check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then MODE="${{ inputs.mode }}";
+          elif [ "$(date -u +%H)" = "14" ]; then MODE=full; else MODE=quick; fi
+          python3 check.py "$MODE"
