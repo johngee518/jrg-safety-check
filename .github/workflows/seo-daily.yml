@@ -2,6 +2,7 @@ name: JRG SEO daily
 # Daily technical SEO check of jrghouseofip.com (Python stdlib only, $0). Public repo, so Actions minutes are free.
 # Like the safety check: the job fails (red run + GitHub email) on any FAIL, writes the report to the job summary,
 # and each FAIL also shows up as an error annotation. Warnings are listed but don't fail the run.
+# System python3 (like safety-check.yml): Cloudflare challenged requests from the setup-python toolcache build.
 on:
   schedule:
     - cron: "17 11 * * *"   # daily 11:17 UTC (~6:17 AM Central)
@@ -14,14 +15,11 @@ concurrency:
 jobs:
   seo:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30   # sequential requests with a 1.5 s pause
     env:
       SITE_URL: https://jrghouseofip.com
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
       - name: Run SEO check
         shell: bash
         run: |
@@ -32,7 +30,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          grep -E '\[FAIL\]' seo-report.txt | sed 's/^ *\[FAIL\] */::error title=SEO FAIL::/' || true
+          grep -E '\[FAIL\]|CHALLENGED|ERROR' seo-report.txt | sed -E 's/^ *(CHALLENGED|ERROR|\[FAIL\]) */::error title=SEO FAIL::/' || true
           { echo "## JRG SEO check ($SITE_URL)"; echo '```'; cat seo-report.txt 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
