@@ -33,7 +33,7 @@ def fetch(url, timeout=15, follow=True, method="GET"):
     cur = url
     opener = urllib.request.build_opener(NoRedirect, urllib.request.HTTPSHandler(context=CTX))
     for _ in range(10):
-        req = urllib.request.Request(cur, method=method, headers={"User-Agent": UA, "Accept-Encoding": "gzip"})
+        req = urllib.request.Request(cur, method=method, headers={"User-Agent": UA, "Accept": "text/html,application/xhtml+xml,*/*;q=0.8", "Accept-Language": "en-US,en;q=0.8", "Accept-Encoding": "gzip"})
         try:
             r = opener.open(req, timeout=timeout)
             status, headers, body = r.status, r.headers, r.read()
@@ -311,6 +311,8 @@ def main():
     home = fetch(base + "/", a.timeout)
     if home["status"] != 200:
         print(f"ERROR: homepage {base}/ returned {home['status'] or home['error']}")
+        _h = home.get('headers') or {}
+        print(f"  server={_h.get('server')} cf-mitigated={_h.get('cf-mitigated')} cf-ray={_h.get('cf-ray')}")
         return 2
     final = urllib.parse.urlparse(home["url"])
     host = final.netloc
