@@ -12,6 +12,12 @@ BASE = "https://jrghouseofip.com"
 REQUIRED = ["/", "/music/", "/publishing/", "/audiobooks/", "/music/neon-hallows/violence/"]
 BANNED = ["Summeer Fox", "James R. Gibson", "houseofips.com", "jrg@houseofips.com"]
 BANNER = "This site is under maintenance while we continue finishing it."
+# Language rollout (Oct 18, 2026): /es/ /fr/ ... pages carry the translated banner (same strings as the site build).
+BANNERS = [BANNER] + ['Este sitio está en mantenimiento mientras terminamos de completarlo. Gracias por tu paciencia.', 'Ce site est en maintenance pendant que nous finissons de le compléter. Merci de votre patience.', 'Este site está em manutenção enquanto terminamos de finalizá-lo. Obrigado pela paciência.', 'Diese Website wird gewartet, während wir sie fertigstellen. Danke für Ihre Geduld.', '本网站正在维护中，我们仍在继续完善。感谢您的耐心等待。', '現在、サイトの完成に向けてメンテナンス中です。今しばらくお待ちください。', '사이트를 마무리하는 동안 유지보수 중입니다. 양해해 주셔서 감사합니다.', 'Trang web đang được bảo trì trong khi chúng tôi tiếp tục hoàn thiện. Cảm ơn bạn đã kiên nhẫn.', 'हम इस साइट को पूरा करने पर काम कर रहे हैं, इसलिए यह अभी रखरखाव में है। आपके धैर्य के लिए धन्यवाद।']
+def has_banner(body):
+    import html as _h
+    t = _h.unescape(body)
+    return any(b in t for b in BANNERS)
 SEC_HEADERS = ["content-security-policy", "strict-transport-security", "x-content-type-options",
                "x-frame-options", "referrer-policy"]
 SSL_MIN_DAYS = 14
@@ -75,7 +81,7 @@ def pages_check():
             fail(f"{url} returned {s or err}"); bad += 1; continue
         if urllib.parse.urlparse(final).hostname not in HOSTS:
             fail(f"{url} redirected off-site to {final}"); bad += 1; continue
-        if BANNER not in body:
+        if not has_banner(body):
             fail(f"Maintenance banner missing on {url}"); bad += 1
         low = body.lower()
         hits = [b for b in BANNED if b.lower() in low]
@@ -88,7 +94,7 @@ def pages_check():
     # 404 page: real 404 status + banner
     s, _, _, body, err = fetch(BASE + "/safety-check-does-not-exist/", tries=1)
     if s != 404: fail(f"Missing page returned {s or err}, expected 404")
-    elif BANNER not in body: fail("Maintenance banner missing on 404 page")
+    elif not has_banner(body): fail("Maintenance banner missing on 404 page")
     else: ok("404 page returns 404 with banner")
 
 # ---------- SSL ----------

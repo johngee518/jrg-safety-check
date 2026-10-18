@@ -16,3 +16,13 @@ Spotify embeds and external cover images: broken links fail, redirects to a diff
 as possible hijacks. Links behind bot protection (DistroKid's Cloudflare challenge) are listed as warnings, not failures.
 
 **On failure** the run fails (GitHub emails the repo owner) and the run summary lists exactly what broke.
+
+## Daily SEO check (`.github/workflows/seo-daily.yml`)
+Daily at 11:17 UTC (plus manual run) `scripts/seo_check.py` (Python stdlib only) checks https://jrghouseofip.com:
+www → apex 301, robots.txt, sitemap (every URL's status), titles/descriptions (presence, length, duplicates), canonical,
+exactly one H1 and heading order, noindex, Open Graph/Twitter tags, JSON-LD, image alt text, viewport, lang, favicon,
+hreflang (codes, x-default, self-reference), real 404s and broken internal links.
+**On failure** the run fails (GitHub emails the repo owner), each FAIL appears as an error annotation, and the full report
+is in the run summary and the `seo-report` artifact (kept 14 days). Warnings are listed but don't fail the run.
+
+The safety check accepts the translated maintenance banner on the language pages (/es/, /fr/, ... added Oct 18, 2026).
