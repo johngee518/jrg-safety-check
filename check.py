@@ -206,9 +206,57 @@ def outbound_check():
         for k, v in by.items(): warn(f"{len(v)} outbound link(s) skipped, {k}")
     ok(f"Outbound check: {len(res)} links/embeds/images, {n['ok']} OK, {n['warn']} unverifiable, {n['fail']} failed")
 
+# ---------- AI answers (AEO) + structured data, added 2026-10-19 ----------
+AI_BOTS = ["GPTBot", "OAI-SearchBot", "ChatGPT-User", "Google-Extended", "PerplexityBot", "ClaudeBot", "Meta-ExternalAgent", "Applebot-Extended", "CCBot"]
+LD_PAGES = {"/": ["Organization"], "/about/": ["FAQPage"], "/publishing/": ["ItemList"], "/es/about/": ["FAQPage"], "/music/neon-hallows/": ["MusicGroup"]}
+def _robots_blocks(txt, bot):
+    groups, cur, rules = [], [], []
+    for line in txt.splitlines():
+        line = line.split("#")[0].strip()
+        if not line or ":" not in line: continue
+        k, v = [x.strip() for x in line.split(":", 1)]; k = k.lower()
+        if k == "user-agent":
+            if rules: groups.append((cur, rules)); cur, rules = [], []
+            cur.append(v.lower())
+        elif k in ("allow", "disallow"): rules.append((k, v))
+    if cur: groups.append((cur, rules))
+    mine = [r for a, r in groups if bot.lower() in a] or [r for a, r in groups if "*" in a]
+    return any(k == "disallow" and v == "/" for r in mine for k, v in r)
+def _types(o):
+    if isinstance(o, list): return [t for x in o for t in _types(x)]
+    if isinstance(o, dict):
+        t = o.get("@type"); out = [t] if isinstance(t, str) else list(t or [])
+        for v in o.values():
+            if isinstance(v, (dict, list)): out += _types(v)
+        return out
+    return []
+def aeo_check():
+    st, _, _, body, err = fetch(BASE + "/robots.txt")
+    if st != 200: fail(f"robots.txt: HTTP {st} {err or ''}")
+    else:
+        blocked = [b for b in AI_BOTS if _robots_blocks(body, b)]
+        if blocked: fail("robots.txt blocks AI crawlers: " + ", ".join(blocked) + " (Cloudflare 'Block AI bots' / managed robots.txt may be on)")
+        else: ok(f"robots.txt allows all {len(AI_BOTS)} AI crawlers")
+    st, _, _, body, err = fetch(BASE + "/llms.txt")
+    if st == 200 and body.lstrip().startswith("# ") and "/publishing/" in body: ok("llms.txt present")
+    else: fail(f"llms.txt missing or malformed (HTTP {st})")
+    for path, need in LD_PAGES.items():
+        st, _, _, body, err = fetch(BASE + path)
+        if st != 200: fail(f"structured data {path}: HTTP {st}"); continue
+        blocks = re.findall(r'<script type="application/ld\+json">(.*?)</script>', body, re.S)
+        found, bad = [], 0
+        for b in blocks:
+            try: found += _types(json.loads(b))
+            except Exception: bad += 1
+        if bad: fail(f"structured data {path}: {bad} JSON-LD block(s) don't parse")
+        miss = [t for t in need if t not in found]
+        if miss: fail(f"structured data {path}: missing {', '.join(miss)}")
+        elif not bad: ok(f"structured data {path}: valid ({', '.join(sorted(set(found)))})")
+
 def main():
     t0 = time.time()
     pages_check()
+    aeo_check()
     with ThreadPoolExecutor(6) as ex:
         list(ex.map(ssl_check, HOSTS)); list(ex.map(headers_check, HOSTS)); list(ex.map(safebrowsing, HOSTS))
     if MODE == "full": outbound_check()
