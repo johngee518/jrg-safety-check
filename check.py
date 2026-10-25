@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """JRG's House of IPs safety checker. Standard library only, no secrets.
-quick mode (every run): pages 200 on apex + www, maintenance banner, content guard, SSL validity/expiry,
+quick mode (every run): pages 200 on apex + www, content guard, SSL validity/expiry,
   security headers, HTTP->HTTPS redirect, Google Safe Browsing (keyless transparency-report lookup).
 full mode (once a day): quick + every outbound link, Spotify embed and external image (broken / hijacked / parked).
 Exit code 1 on any failure; writes a Markdown summary to $GITHUB_STEP_SUMMARY."""
@@ -81,8 +81,7 @@ def pages_check():
             fail(f"{url} returned {s or err}"); bad += 1; continue
         if urllib.parse.urlparse(final).hostname not in HOSTS:
             fail(f"{url} redirected off-site to {final}"); bad += 1; continue
-        if not has_banner(body):
-            fail(f"Maintenance banner missing on {url}"); bad += 1
+        # Maintenance banner removed with John's approval Oct 24, 2026; no longer required.
         low = body.lower()
         hits = [b for b in BANNED if b.lower() in low]
         if hits:
@@ -90,12 +89,11 @@ def pages_check():
         if host == HOSTS[0]: PAGES[path] = body
     req_ok = all(any(r[0] == hst and r[1] == p and r[3] == 200 for r in results) for hst in HOSTS for p in REQUIRED)
     if req_ok: ok("Home, /music/, /publishing/, /audiobooks/ and release page return 200 on apex and www")
-    if not bad: ok(f"All {len(results)} page checks passed (200, banner present, content guard clean)")
+    if not bad: ok(f"All {len(results)} page checks passed (200, content guard clean)")
     # 404 page: real 404 status + banner
     s, _, _, body, err = fetch(BASE + "/safety-check-does-not-exist/", tries=1)
     if s != 404: fail(f"Missing page returned {s or err}, expected 404")
-    elif not has_banner(body): fail("Maintenance banner missing on 404 page")
-    else: ok("404 page returns 404 with banner")
+    else: ok("404 page returns 404")
 
 # ---------- SSL ----------
 def ssl_check(host):
