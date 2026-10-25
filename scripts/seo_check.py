@@ -42,7 +42,7 @@ def fetch(url, timeout=15, follow=True, method="GET"):
         time.sleep(DELAY)
         req = urllib.request.Request(cur, method=method, headers={
             "User-Agent": UA,
-            "Accept": "*/*",
+            "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.8",
         })
         try:

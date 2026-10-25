@@ -40,7 +40,7 @@ def fetch(url, method="GET", follow=True, timeout=15, maxbytes=3_000_000, tries=
     for i in range(tries):
         try:
             op = urllib.request.build_opener() if follow else urllib.request.build_opener(NoRedirect)
-            req = urllib.request.Request(url, method=method, headers={"User-Agent": UA, "Accept": "*/*", "Accept-Language": "en-US,en;q=0.8"})
+            req = urllib.request.Request(url, method=method, headers={"User-Agent": UA, "Accept": "text/html,application/xhtml+xml,*/*;q=0.8", "Accept-Language": "en-US,en;q=0.8"})
             with op.open(req, timeout=timeout) as r:
                 body = r.read(maxbytes).decode("utf-8", "replace") if method == "GET" else ""
                 return r.status, r.geturl(), {k.lower(): v for k, v in r.headers.items()}, body, None
